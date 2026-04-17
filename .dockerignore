@@ -1,0 +1,47 @@
+# ── Python cache ──
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ── Virtual environments ──
+venv/
+env/
+.env/
+.venv/
+
+# ── Git ──
+.git/
+.gitignore
+
+# ── Docker files (no need inside container) ──
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# ── Security keys (NEVER copy into image) ──
+cosign.key
+cosign.pub
+*.key
+*.pem
+
+# ── Environment files (secrets go via Docker secrets/env vars) ──
+.env
+.env.*
+
+# ── OS files ──
+.DS_Store
+Thumbs.db
+
+# ── Editor files ──
+.vscode/
+.idea/
+*.swp
+
+# ── Logs ──
+*.log
+logs/
+
+# ── CI/CD ──
+.github/

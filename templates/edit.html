@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student — EduTrack{% endblock %}
+
+{% block content %}
+
+<!-- ── PAGE HEADER ── -->
+<div class="mb-8">
+    <div class="flex items-center gap-2 mb-1">
+        <a href="/" class="text-slate-500 hover:text-white transition-colors text-sm">Dashboard</a>
+        <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+        <span class="text-white text-sm">Edit Student</span>
+    </div>
+    <h1 class="text-2xl font-bold text-white">Edit Student</h1>
+    <p class="text-slate-500 text-sm mt-1">Update student information</p>
+</div>
+
+<!-- ── EDIT FORM ── -->
+<div class="max-w-md">
+    <div class="glass rounded-2xl p-6">
+
+        <!-- Student ID badge -->
+        <div class="flex items-center gap-2 mb-6">
+            <span class="text-xs font-mono text-slate-500">Student ID:</span>
+            <span class="text-xs font-mono text-brand-400 bg-brand-600/10 px-2 py-0.5 rounded-full border border-brand-600/20">
+                #{{ student[0] }}
+            </span>
+        </div>
+
+        <form action="/update/{{ student[0] }}" method="POST" class="flex flex-col gap-5">
+
+            <div>
+                <label class="block text-xs text-slate-400 mb-1.5 font-medium">Full Name</label>
+                <input type="text" name="name" value="{{ student[1] }}" required
+                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3
+                              text-sm text-white placeholder-slate-600
+                              focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50
+                              transition-all">
+            </div>
+
+            <div>
+                <label class="block text-xs text-slate-400 mb-1.5 font-medium">Roll Number</label>
+                <input type="text" name="roll" value="{{ student[2] }}" required
+                       class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3
+                              text-sm text-white placeholder-slate-600
+                              focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50
+                              transition-all">
+            </div>
+
+            <div class="flex gap-3 pt-1">
+                <a href="/"
+                   class="flex-1 py-3 rounded-xl text-sm font-medium text-center
+                          border border-white/10 text-slate-400 hover:text-white
+                          hover:bg-white/5 transition-all">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="flex-1 py-3 rounded-xl text-sm font-semibold
+                               bg-brand-600 hover:bg-brand-700 text-white transition-all active:scale-95">
+                    Save Changes
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+{% endblock %}

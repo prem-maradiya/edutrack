@@ -1,0 +1,23 @@
+# ── Secrets — NEVER commit these ──
+secrets/
+secrets/*.txt
+cosign.key
+cosign.pub
+*.key
+*.pem
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+env/
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Editor ──
+.vscode/
+.idea/

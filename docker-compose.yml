@@ -1,0 +1,184 @@
+# ─────────────────────────────────────────────
+# Docker Compose — EduTrack Student Management
+# Concepts covered:
+#   - Multi-container architecture (Flask + MySQL + Nginx)
+#   - Custom bridge networks (frontend + backend)
+#   - Named volumes (persistent storage)
+#   - Docker secrets (secure credentials)
+#   - Health checks (readiness detection)
+#   - Logging with rotation
+#   - Environment variables
+#   - Container dependencies
+# ─────────────────────────────────────────────
+
+services:
+
+  # ── SERVICE 1: MySQL Database ──────────────
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: unless-stopped
+
+    # Docker Secrets — passwords never stored as plain text
+    # Reads from files in ./secrets/ folder
+    secrets:
+      - db_root_password
+      - db_password
+
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE: student_db
+      MYSQL_USER: edutrack_user
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+
+    # Named volume — data persists even if container is deleted
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    # Health Check — checks if MySQL is actually ready
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Only on backend network — DB not reachable from Nginx
+    networks:
+      - backend_network
+
+    # Logging with rotation — prevents disk filling up
+    # json-file: default Docker driver, works with docker logs command
+    # max-size: rotate when file hits 10MB
+    # max-file: keep max 3 rotated files per container
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+
+  # ── SERVICE 2: Flask Application ───────────
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_app
+    restart: unless-stopped
+
+    secrets:
+      - db_password
+
+    environment:
+      DB_HOST: db
+      DB_USER: edutrack_user
+      DB_NAME: student_db
+      FLASK_ENV: production
+
+    # Wait for MySQL health check to pass before starting Flask
+    depends_on:
+      db:
+        condition: service_healthy
+
+    # Health Check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Both networks — talks to MySQL (backend) and Nginx (frontend)
+    networks:
+      - backend_network
+      - frontend_network
+
+    expose:
+      - "5000"
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+
+  # ── SERVICE 3: Nginx Reverse Proxy ─────────
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_proxy
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+    depends_on:
+      web:
+        condition: service_healthy
+
+    networks:
+      - frontend_network
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+
+# ─────────────────────────────────────────────
+# NETWORKS — Two custom bridge networks
+#
+# frontend_network: Nginx ↔ Flask only
+# backend_network:  Flask ↔ MySQL only
+#
+# MySQL is NEVER reachable from Nginx — network segmentation
+# ─────────────────────────────────────────────
+networks:
+  frontend_network:
+    driver: bridge
+    name: edutrack_frontend
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+  backend_network:
+    driver: bridge
+    name: edutrack_backend
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+
+
+# ─────────────────────────────────────────────
+# VOLUMES — Named volume for MySQL persistence
+# Survives container restart and deletion
+# ─────────────────────────────────────────────
+volumes:
+  mysql_data:
+    driver: local
+    name: edutrack_mysql_data
+
+
+# ─────────────────────────────────────────────
+# SECRETS — Mounted as files at /run/secrets/
+# Stored in memory (tmpfs) — never written to disk
+# ─────────────────────────────────────────────
+secrets:
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  db_password:
+    file: ./secrets/db_password.txt
