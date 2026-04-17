@@ -55,7 +55,9 @@ COPY --from=builder /deps /usr/local
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 # ── Copy application code ──
-COPY app/ .
+COPY app.py .
+COPY templates/ templates/
+COPY static/ static/
 
 # ── Set correct ownership ──
 RUN chown -R appuser:appgroup /app
