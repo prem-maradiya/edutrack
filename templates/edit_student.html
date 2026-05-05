@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Edit Student — EduTrack{% endblock %}
+{% block content %}
+
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-1">
+        <a href="/students" class="text-slate-500 hover:text-white text-sm transition-colors">Students</a>
+        <span class="text-slate-600 text-sm">›</span>
+        <span class="text-white text-sm">Edit Student</span>
+    </div>
+    <h1 class="text-xl font-bold text-white">Edit Student</h1>
+</div>
+
+<div class="max-w-md">
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center gap-2 mb-5">
+            <span class="text-xs text-slate-500 font-mono">Enrollment ID:</span>
+            <span class="badge-neutral font-mono">{{ student.enrollment_id }}</span>
+        </div>
+        <form action="/students/update/{{ student.id }}" method="POST" class="flex flex-col gap-4">
+            <div>
+                <label class="label">Full Name</label>
+                <input type="text" name="name" value="{{ student.name }}" required class="input">
+            </div>
+            <div>
+                <label class="label">Roll Number</label>
+                <input type="text" name="roll" value="{{ student.roll }}" required class="input">
+            </div>
+            <div>
+                <label class="label">Class</label>
+                <select name="class_id" required class="input">
+                    {% for cls in classes %}
+                        <option value="{{ cls.id }}" {% if cls.id == student.class_id %}selected{% endif %}>{{ cls.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex gap-3 mt-1">
+                <a href="/students" class="btn-ghost flex-1 justify-center">Cancel</a>
+                <button type="submit" class="btn-primary flex-1 justify-center">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

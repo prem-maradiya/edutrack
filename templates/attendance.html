@@ -1,187 +1,169 @@
 {% extends "base.html" %}
-
-{% block title %}Mark Attendance — EduTrack{% endblock %}
-
+{% block title %}Attendance — EduTrack{% endblock %}
 {% block content %}
 
-<!-- ── PAGE HEADER ── -->
-<div class="mb-8 flex items-start justify-between">
-    <div>
-        <div class="flex items-center gap-2 mb-1">
-            <a href="/" class="text-slate-500 hover:text-white transition-colors text-sm">Dashboard</a>
-            <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-            </svg>
-            <span class="text-white text-sm">Mark Attendance</span>
-        </div>
-        <h1 class="text-2xl font-bold text-white">Mark Attendance</h1>
-        <p class="text-slate-500 text-sm mt-1">{{ today }}</p>
-    </div>
-
-    {% if already_marked %}
-        <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20
-                    text-yellow-400 text-xs font-medium px-4 py-2 rounded-xl">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-            </svg>
-            Already marked today — resubmitting will overwrite
-        </div>
-    {% endif %}
+<div class="mb-6">
+    <h1 class="text-xl font-bold text-white">Mark Attendance</h1>
+    <p class="text-slate-500 text-sm mt-0.5">Select a class and date to mark attendance</p>
 </div>
 
-{% if students %}
-
-<!-- ── QUICK ACTIONS ── -->
-<div class="flex items-center gap-3 mb-5">
-    <button onclick="markAll('Present')"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold
-                   bg-green-500/15 text-green-400 border border-green-500/20
-                   hover:bg-green-500/25 transition-all">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-        </svg>
-        Mark All Present
-    </button>
-    <button onclick="markAll('Absent')"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold
-                   bg-red-500/15 text-red-400 border border-red-500/20
-                   hover:bg-red-500/25 transition-all">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-        Mark All Absent
-    </button>
-    <span class="text-slate-600 text-xs ml-auto font-mono" id="presentCount">
-        0 / {{ students|length }} present
-    </span>
+<!-- Step 1: Select Class + Date -->
+<div class="glass rounded-2xl p-6 mb-6">
+    <div class="text-sm font-semibold text-white mb-4">Step 1 — Select Class & Date</div>
+    <div class="flex gap-4 items-end">
+        <div class="flex-1">
+            <label class="label">Class</label>
+            <select id="classSelect" class="input">
+                <option value="">Select class...</option>
+                {% for cls in classes %}
+                    <option value="{{ cls.id }}">{{ cls.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="w-48">
+            <label class="label">Date</label>
+            <input type="date" id="dateSelect" value="{{ today }}" max="{{ today }}" class="input">
+        </div>
+        <button onclick="loadStudents()" class="btn-primary h-10">Load Students</button>
+    </div>
+    <div id="holidayWarning" class="hidden mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-400"></div>
+    <div id="alreadyMarked" class="hidden mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-400">
+        ℹ️ Attendance already marked for this date. Resubmitting will overwrite existing records.
+    </div>
 </div>
 
-<!-- ── ATTENDANCE FORM ── -->
-<form action="/mark_attendance" method="POST" id="attendanceForm">
-    <div class="glass rounded-2xl overflow-hidden">
+<!-- Step 2: Mark Attendance -->
+<div id="attendanceSection" class="hidden">
+    <form action="/attendance/mark" method="POST">
+        <input type="hidden" name="class_id" id="formClassId">
+        <input type="hidden" name="date" id="formDate">
 
-        <!-- Table Header -->
-        <div class="px-6 py-4 border-b border-white/5">
-            <h2 class="text-sm font-semibold text-white">Student List</h2>
-            <p class="text-xs text-slate-500 mt-0.5">{{ students|length }} students</p>
+        <div class="glass rounded-2xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                <div>
+                    <div class="text-sm font-semibold text-white">Step 2 — Mark Attendance</div>
+                    <div class="text-xs text-slate-500 mt-0.5" id="studentCount"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-500 font-mono" id="liveCount">0 present</span>
+                    <button type="button" onclick="markAll('Present')" class="badge-good cursor-pointer px-3 py-1.5">All Present</button>
+                    <button type="button" onclick="markAll('Absent')"  class="badge-bad  cursor-pointer px-3 py-1.5">All Absent</button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/5">
+                            <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">#</th>
+                            <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Enrollment ID</th>
+                            <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Name</th>
+                            <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Roll</th>
+                            <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody" class="divide-y divide-white/5"></tbody>
+                </table>
+            </div>
+
+            <div class="px-5 py-4 border-t border-white/5 flex justify-between items-center">
+                <button type="button" onclick="document.getElementById('attendanceSection').classList.add('hidden')" class="btn-ghost">← Back</button>
+                <button type="submit" class="btn-primary">Submit Attendance</button>
+            </div>
         </div>
-
-        <!-- Table -->
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-white/5">
-                        <th class="text-left px-6 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">#</th>
-                        <th class="text-left px-6 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Name</th>
-                        <th class="text-left px-6 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Roll</th>
-                        <th class="text-left px-6 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-white/5">
-                    {% for student in students %}
-                    <tr class="data-row transition-colors" id="row-{{ student[0] }}">
-
-                        <td class="px-6 py-4 text-slate-600 font-mono text-xs">{{ loop.index }}</td>
-                        <td class="px-6 py-4 text-white font-medium">{{ student[1] }}</td>
-                        <td class="px-6 py-4 text-slate-400 font-mono text-xs">{{ student[2] }}</td>
-
-                        <!-- Toggle buttons instead of dropdown -->
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2">
-
-                                <!-- Hidden input holds the actual value -->
-                                <input type="hidden"
-                                       name="status_{{ student[0] }}"
-                                       id="input-{{ student[0] }}"
-                                       value="Present">
-
-                                <!-- Present Button -->
-                                <button type="button"
-                                        onclick="setStatus({{ student[0] }}, 'Present')"
-                                        id="btn-present-{{ student[0] }}"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
-                                               bg-green-500/20 text-green-400 border border-green-500/30">
-                                    Present
-                                </button>
-
-                                <!-- Absent Button -->
-                                <button type="button"
-                                        onclick="setStatus({{ student[0] }}, 'Absent')"
-                                        id="btn-absent-{{ student[0] }}"
-                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
-                                               bg-white/5 text-slate-500 border border-white/10">
-                                    Absent
-                                </button>
-
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Form Footer -->
-        <div class="px-6 py-4 border-t border-white/5 flex items-center justify-between">
-            <a href="/" class="text-sm text-slate-500 hover:text-white transition-colors">
-                ← Back to Dashboard
-            </a>
-            <button type="submit"
-                    class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white
-                           text-sm font-semibold px-6 py-2.5 rounded-xl transition-all active:scale-95">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                Submit Attendance
-            </button>
-        </div>
-
-    </div>
-</form>
-
-{% else %}
-<!-- Empty state -->
-<div class="glass rounded-2xl p-16 text-center">
-    <div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-        <svg class="w-7 h-7 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-    </div>
-    <p class="text-slate-500 text-sm mb-2">No students found</p>
-    <a href="/" class="text-brand-400 text-sm hover:underline">Add students first →</a>
+    </form>
 </div>
-{% endif %}
 
 {% endblock %}
 
-
 {% block scripts %}
 <script>
-    // ── ATTENDANCE TOGGLE LOGIC ──
+    let studentIds = [];
 
-    // IDs of all students (for markAll)
-    const studentIds = [{% for student in students %}{{ student[0] }}{% if not loop.last %},{% endif %}{% endfor %}];
+    async function loadStudents() {
+        const classId = document.getElementById('classSelect').value;
+        const date    = document.getElementById('dateSelect').value;
 
-    function setStatus(id, status) {
-        const input = document.getElementById('input-' + id);
-        const btnPresent = document.getElementById('btn-present-' + id);
-        const btnAbsent  = document.getElementById('btn-absent-' + id);
-        const row = document.getElementById('row-' + id);
-
-        input.value = status;
-
-        if (status === 'Present') {
-            btnPresent.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-green-500/20 text-green-400 border border-green-500/30';
-            btnAbsent.className  = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white/5 text-slate-500 border border-white/10';
-            row.style.background = '';
-        } else {
-            btnAbsent.className  = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-red-500/20 text-red-400 border border-red-500/30';
-            btnPresent.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white/5 text-slate-500 border border-white/10';
-            row.style.background = 'rgba(239,68,68,0.03)';
+        if (!classId || !date) {
+            alert('Please select both a class and a date.');
+            return;
         }
 
+        const res  = await fetch(`/attendance/students?class_id=${classId}&date=${date}`);
+        const data = await res.json();
+
+        // Holiday warning
+        const hw = document.getElementById('holidayWarning');
+        if (data.holiday) {
+            hw.textContent = `⚠️ Holiday: ${data.holiday}. You can still mark attendance if needed.`;
+            hw.classList.remove('hidden');
+        } else { hw.classList.add('hidden'); }
+
+        // Already marked warning
+        const am = document.getElementById('alreadyMarked');
+        data.already_marked ? am.classList.remove('hidden') : am.classList.add('hidden');
+
+        if (!data.students.length) {
+            alert('No students found in this class.');
+            return;
+        }
+
+        // Set hidden form fields
+        document.getElementById('formClassId').value = classId;
+        document.getElementById('formDate').value = date;
+        document.getElementById('studentCount').textContent = `${data.students.length} students in this class`;
+
+        // Build table
+        const tbody = document.getElementById('studentTableBody');
+        tbody.innerHTML = '';
+        studentIds = [];
+
+        data.students.forEach((s, i) => {
+            studentIds.push(s.id);
+            const existing = data.existing[s.id] || 'Present';
+            tbody.innerHTML += `
+                <tr class="data-row transition-colors" id="row-${s.id}">
+                    <td class="px-5 py-3 text-slate-600 font-mono text-xs">${i + 1}</td>
+                    <td class="px-5 py-3 text-indigo-400 font-mono text-xs">${s.enrollment_id}</td>
+                    <td class="px-5 py-3 text-white font-medium">${s.name}</td>
+                    <td class="px-5 py-3 text-slate-400 font-mono text-xs">${s.roll}</td>
+                    <td class="px-5 py-3">
+                        <input type="hidden" name="status_${s.id}" id="input-${s.id}" value="${existing}">
+                        <div class="flex gap-2">
+                            <button type="button" onclick="setStatus(${s.id}, 'Present')"
+                                    id="btn-p-${s.id}"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                                           ${existing === 'Present' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-white/5 text-slate-500 border border-white/10'}">
+                                Present
+                            </button>
+                            <button type="button" onclick="setStatus(${s.id}, 'Absent')"
+                                    id="btn-a-${s.id}"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                                           ${existing === 'Absent' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-slate-500 border border-white/10'}">
+                                Absent
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        });
+
+        document.getElementById('attendanceSection').classList.remove('hidden');
+        updateCount();
+    }
+
+    function setStatus(id, status) {
+        document.getElementById(`input-${id}`).value = status;
+
+        const btnP = document.getElementById(`btn-p-${id}`);
+        const btnA = document.getElementById(`btn-a-${id}`);
+
+        if (status === 'Present') {
+            btnP.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-green-500/20 text-green-400 border border-green-500/30';
+            btnA.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white/5 text-slate-500 border border-white/10';
+        } else {
+            btnA.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-red-500/20 text-red-400 border border-red-500/30';
+            btnP.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white/5 text-slate-500 border border-white/10';
+        }
         updateCount();
     }
 
@@ -190,15 +172,8 @@
     }
 
     function updateCount() {
-        const total   = studentIds.length;
-        const present = studentIds.filter(id =>
-            document.getElementById('input-' + id).value === 'Present'
-        ).length;
-        document.getElementById('presentCount').textContent =
-            present + ' / ' + total + ' present';
+        const present = studentIds.filter(id => document.getElementById(`input-${id}`).value === 'Present').length;
+        document.getElementById('liveCount').textContent = `${present} / ${studentIds.length} present`;
     }
-
-    // Initialize count on page load
-    updateCount();
 </script>
 {% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Defaulters — EduTrack{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-xl font-bold text-white">Defaulters</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Students below the attendance threshold</p>
+    </div>
+    {% if defaulters %}
+        <a href="/reports/export/csv{% if selected_class %}?class_id={{ selected_class }}{% endif %}" class="btn-ghost">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Export CSV
+        </a>
+    {% endif %}
+</div>
+
+<!-- Filter -->
+<form method="GET" action="/defaulters" class="flex gap-3 mb-5">
+    <select name="class_id" class="input w-44">
+        <option value="">All Classes</option>
+        {% for cls in classes %}
+            <option value="{{ cls.id }}" {% if selected_class == cls.id|string %}selected{% endif %}>{{ cls.name }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn-primary">Filter</button>
+    {% if selected_class %}
+        <a href="/defaulters" class="btn-ghost">Clear</a>
+    {% endif %}
+</form>
+
+{% if defaulters %}
+    <!-- Alert Banner -->
+    <div class="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl mb-5">
+        <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <p class="text-red-300 text-sm font-medium">{{ defaulters|length }} student{{ 's' if defaulters|length > 1 }} require attention — attendance below threshold.</p>
+    </div>
+
+    <div class="glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-white/5">
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">#</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Enrollment ID</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Name</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Class</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Present</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Absent</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Total</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Attendance</th>
+                        <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Threshold</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    {% for s in defaulters %}
+                    <tr class="data-row transition-colors">
+                        <td class="px-5 py-3 text-slate-600 font-mono text-xs">{{ loop.index }}</td>
+                        <td class="px-5 py-3 text-indigo-400 font-mono text-xs">{{ s.enrollment_id }}</td>
+                        <td class="px-5 py-3 text-white font-medium">{{ s.name }}</td>
+                        <td class="px-5 py-3"><span class="badge-neutral">{{ s.class_name }}</span></td>
+                        <td class="px-5 py-3 text-green-400 font-mono text-xs">{{ s.present }}</td>
+                        <td class="px-5 py-3 text-red-400 font-mono text-xs">{{ s.absent }}</td>
+                        <td class="px-5 py-3 text-slate-400 font-mono text-xs">{{ s.total }}</td>
+                        <td class="px-5 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="progress-bar w-20">
+                                    <div class="progress-fill-red" data-width="{{ s.percentage }}"></div>
+                                </div>
+                                <span class="badge-bad">{{ s.percentage }}%</span>
+                            </div>
+                        </td>
+                        <td class="px-5 py-3 text-slate-500 font-mono text-xs">{{ s.threshold }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% else %}
+    <div class="glass rounded-2xl p-16 text-center">
+        <div class="text-4xl mb-4">🎉</div>
+        <div class="text-white font-semibold mb-1">No Defaulters!</div>
+        <div class="text-slate-500 text-sm">All students are above the attendance threshold.</div>
+    </div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+</script>
+{% endblock %}

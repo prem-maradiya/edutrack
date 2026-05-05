@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Students — EduTrack{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-xl font-bold text-white">Students</h1>
+        <p class="text-slate-500 text-sm mt-0.5">{{ students|length }} students found</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="/students/import" class="btn-ghost">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            Bulk Import
+        </a>
+        <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="btn-primary">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Add Student
+        </button>
+    </div>
+</div>
+
+<!-- Search & Filter -->
+<form method="GET" action="/students" class="flex gap-3 mb-5">
+    <input type="text" name="search" value="{{ search }}" placeholder="Search by name, roll, enrollment ID..." class="input flex-1">
+    <select name="class_id" class="input w-44">
+        <option value="">All Classes</option>
+        {% for cls in classes %}
+            <option value="{{ cls.id }}" {% if selected_class == cls.id|string %}selected{% endif %}>{{ cls.name }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn-primary">Search</button>
+    {% if search or selected_class %}
+        <a href="/students" class="btn-ghost">Clear</a>
+    {% endif %}
+</form>
+
+<!-- Table -->
+<div class="glass rounded-2xl overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-white/5">
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Enrollment ID</th>
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Name</th>
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Roll</th>
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Class</th>
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Attendance</th>
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Status</th>
+                    <th class="text-left px-5 py-3 text-xs font-mono text-slate-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-white/5">
+                {% if students %}
+                    {% for s in students %}
+                    <tr class="data-row transition-colors">
+                        <td class="px-5 py-3 font-mono text-xs text-indigo-400">{{ s.enrollment_id }}</td>
+                        <td class="px-5 py-3 text-white font-medium">{{ s.name }}</td>
+                        <td class="px-5 py-3 text-slate-400 font-mono text-xs">{{ s.roll }}</td>
+                        <td class="px-5 py-3"><span class="badge-neutral">{{ s.class_name }}</span></td>
+                        <td class="px-5 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="progress-bar w-20">
+                                    {% if s.percentage >= 75 %}
+                                    <div class="progress-fill-green" data-width="{{ s.percentage }}"></div>
+                                    {% else %}
+                                    <div class="progress-fill-red" data-width="{{ s.percentage }}"></div>
+                                    {% endif %}
+                                </div>
+                                <span class="text-xs font-mono text-slate-400">{{ s.percentage }}%</span>
+                            </div>
+                        </td>
+                        <td class="px-5 py-3">
+                            {% if s.status == "Defaulter" %}
+                                <span class="badge-bad">Defaulter</span>
+                            {% else %}
+                                <span class="badge-good">Good</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-5 py-3">
+                            <div class="flex items-center gap-2">
+                                <a href="/students/edit/{{ s.id }}" class="btn-ghost">Edit</a>
+                                <button data-id="{{ s.id }}" data-name="{{ s.name }}"
+                                        onclick="openDeleteModal(this.dataset.id, this.dataset.name)"
+                                        class="btn-danger">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="7" class="px-5 py-16 text-center text-slate-500 text-sm">
+                        No students found. Add your first student using the button above.
+                    </td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div id="addModal" class="hidden modal-overlay">
+    <div class="modal-box">
+        <h3 class="text-white font-semibold mb-4">Add New Student</h3>
+        <form action="/students/add" method="POST" class="flex flex-col gap-4">
+            <div>
+                <label class="label">Full Name</label>
+                <input type="text" name="name" required placeholder="e.g. Rahul Sharma" class="input">
+            </div>
+            <div>
+                <label class="label">Roll Number</label>
+                <input type="text" name="roll" required placeholder="e.g. 23CSE001" class="input">
+            </div>
+            <div>
+                <label class="label">Class</label>
+                <select name="class_id" required class="input">
+                    <option value="">Select class...</option>
+                    {% for cls in classes %}
+                        <option value="{{ cls.id }}">{{ cls.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-center gap-2 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
+                <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-xs text-indigo-300">Enrollment ID will be auto-generated in MIT-YYYY-XXX format.</p>
+            </div>
+            <div class="flex gap-3 mt-1">
+                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="btn-ghost flex-1 justify-center">Cancel</button>
+                <button type="submit" class="btn-primary flex-1 justify-center">Add Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="hidden modal-overlay">
+    <div class="modal-box">
+        <h3 class="text-white font-semibold mb-2">Delete Student</h3>
+        <p class="text-slate-400 text-sm mb-5">Are you sure you want to delete <span id="deleteName" class="text-white font-medium"></span>? All attendance records will also be deleted.</p>
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="btn-ghost flex-1 justify-center">Cancel</button>
+            <a id="deleteLink" href="#" class="btn-danger flex-1 text-center">Delete</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('[data-width]').forEach(el => {
+        el.style.width = el.dataset.width + '%';
+    });
+    function openDeleteModal(id, name) {
+        document.getElementById('deleteName').textContent = name;
+        document.getElementById('deleteLink').href = '/students/delete/' + id;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

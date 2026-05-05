@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Import Students — EduTrack{% endblock %}
+{% block content %}
+
+<div class="mb-6">
+    <div class="flex items-center gap-2 mb-1">
+        <a href="/students" class="text-slate-500 hover:text-white text-sm transition-colors">Students</a>
+        <span class="text-slate-600 text-sm">›</span>
+        <span class="text-white text-sm">Bulk Import</span>
+    </div>
+    <h1 class="text-xl font-bold text-white">Bulk Import Students</h1>
+    <p class="text-slate-500 text-sm mt-0.5">Upload a CSV file to add multiple students at once</p>
+</div>
+
+<div class="grid grid-cols-3 gap-6">
+
+    <!-- Upload Form -->
+    <div class="col-span-2">
+        <div class="glass rounded-2xl p-6">
+            <div class="text-sm font-semibold text-white mb-5">Upload CSV File</div>
+
+            <form action="/students/import" method="POST" enctype="multipart/form-data" class="flex flex-col gap-5">
+
+                <!-- Class Selection -->
+                <div>
+                    <label class="label">Assign All Students to Class</label>
+                    <select name="class_id" required class="input">
+                        <option value="">Select class...</option>
+                        {% for cls in classes %}
+                            <option value="{{ cls.id }}">{{ cls.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-slate-600 mt-1.5">All students in the CSV will be added to this class.</p>
+                </div>
+
+                <!-- File Upload -->
+                <div>
+                    <label class="label">CSV File</label>
+                    <div id="dropZone"
+                         class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center cursor-pointer transition-all hover:border-indigo-500/50 hover:bg-indigo-500/5"
+                         onclick="document.getElementById('csvFile').click()"
+                         ondragover="handleDragOver(event)"
+                         ondrop="handleDrop(event)">
+                        <input type="file" name="csv_file" id="csvFile" accept=".csv"
+                               class="hidden" onchange="handleFileSelect(event)">
+                        <div id="dropContent">
+                            <svg class="w-10 h-10 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <p class="text-slate-400 text-sm font-medium">Drop your CSV file here</p>
+                            <p class="text-slate-600 text-xs mt-1">or click to browse</p>
+                        </div>
+                        <div id="fileSelected" class="hidden">
+                            <svg class="w-10 h-10 text-green-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <p id="fileName" class="text-green-400 text-sm font-medium"></p>
+                            <p class="text-slate-600 text-xs mt-1">Click to change file</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <a href="/students" class="btn-ghost flex-1 justify-center">Cancel</a>
+                    <button type="submit" class="btn-primary flex-1 justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        Import Students
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="flex flex-col gap-4">
+
+        <!-- Download Template -->
+        <div class="glass rounded-2xl p-5">
+            <div class="text-sm font-semibold text-white mb-3">Step 1 — Download Template</div>
+            <p class="text-xs text-slate-500 mb-4">Download the CSV template and fill it in Excel or Google Sheets.</p>
+            <a href="/students/download-template" class="btn-primary w-full justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Download Template
+            </a>
+        </div>
+
+        <!-- CSV Format -->
+        <div class="glass rounded-2xl p-5">
+            <div class="text-sm font-semibold text-white mb-3">Step 2 — Fill the CSV</div>
+            <p class="text-xs text-slate-500 mb-3">Your CSV must have these exact column headers:</p>
+            <div class="bg-black/30 rounded-xl p-3 font-mono text-xs text-green-400 mb-3">
+                name,roll<br>
+                Rahul Sharma,23CSE001<br>
+                Priya Patel,23CSE002<br>
+                Arjun Mehta,23CSE003
+            </div>
+            <ul class="flex flex-col gap-1.5">
+                <li class="flex items-center gap-2 text-xs text-slate-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                    <code class="text-indigo-400">name</code> — Full student name
+                </li>
+                <li class="flex items-center gap-2 text-xs text-slate-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0"></span>
+                    <code class="text-indigo-400">roll</code> — Unique roll number
+                </li>
+                <li class="flex items-center gap-2 text-xs text-slate-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></span>
+                    Enrollment ID is auto-generated
+                </li>
+                <li class="flex items-center gap-2 text-xs text-slate-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"></span>
+                    Duplicate rolls are skipped safely
+                </li>
+            </ul>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass rounded-2xl p-5">
+            <div class="text-sm font-semibold text-white mb-2">Step 3 — Upload & Import</div>
+            <p class="text-xs text-slate-500">Select the class, upload your filled CSV, and click Import. Enrollment IDs are auto-generated for each student.</p>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) showFile(file.name);
+    }
+
+    function handleDragOver(event) {
+        event.preventDefault();
+        document.getElementById('dropZone').classList.add('border-indigo-500/50', 'bg-indigo-500/5');
+    }
+
+    function handleDrop(event) {
+        event.preventDefault();
+        const file = event.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            document.getElementById('csvFile').files = event.dataTransfer.files;
+            showFile(file.name);
+        }
+    }
+
+    function showFile(name) {
+        document.getElementById('dropContent').classList.add('hidden');
+        document.getElementById('fileSelected').classList.remove('hidden');
+        document.getElementById('fileName').textContent = name;
+    }
+</script>
+{% endblock %}

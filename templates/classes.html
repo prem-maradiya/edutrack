@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Classes — EduTrack{% endblock %}
+{% block content %}
+
+<div class="flex items-center justify-between mb-6">
+    <div>
+        <h1 class="text-xl font-bold text-white">Classes</h1>
+        <p class="text-slate-500 text-sm mt-0.5">{{ classes|length }} classes configured</p>
+    </div>
+    <button onclick="document.getElementById('addModal').classList.remove('hidden')" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Class
+    </button>
+</div>
+
+<!-- Class Cards -->
+<div class="grid grid-cols-3 gap-4">
+    {% if classes %}
+        {% for cls in classes %}
+        <div class="glass rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <div class="text-lg font-bold text-white">{{ cls.name }}</div>
+                    <div class="text-xs text-slate-500 font-mono">{{ cls.year_name }}</div>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-white/5 rounded-xl p-3 text-center">
+                    <div class="text-2xl font-bold text-white">{{ cls.student_count }}</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Students</div>
+                </div>
+                <div class="bg-white/5 rounded-xl p-3 text-center">
+                    <div class="text-2xl font-bold text-white">{{ cls.threshold }}%</div>
+                    <div class="text-xs text-slate-500 mt-0.5">Threshold</div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="text-xs text-slate-600">Capacity: {{ cls.capacity }}</div>
+                <button data-id="{{ cls.id }}" data-name="{{ cls.name }}"
+                        onclick="openDeleteModal(this.dataset.id, this.dataset.name)"
+                        class="btn-danger text-xs">Delete</button>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="col-span-3 glass rounded-2xl p-16 text-center text-slate-500 text-sm">
+            No classes found. Create your first class.
+        </div>
+    {% endif %}
+</div>
+
+<!-- Add Class Modal -->
+<div id="addModal" class="hidden modal-overlay">
+    <div class="modal-box">
+        <h3 class="text-white font-semibold mb-4">Add New Class</h3>
+        <form action="/classes/add" method="POST" class="flex flex-col gap-4">
+            <div>
+                <label class="label">Class Name</label>
+                <input type="text" name="name" required placeholder="e.g. TY-A" class="input">
+            </div>
+            <div>
+                <label class="label">Academic Year</label>
+                <select name="year_id" required class="input">
+                    {% for year in years %}
+                        <option value="{{ year.id }}">{{ year.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="label">Threshold %</label>
+                    <input type="number" name="threshold" value="75" min="1" max="100" class="input">
+                </div>
+                <div>
+                    <label class="label">Capacity</label>
+                    <input type="number" name="capacity" value="60" min="1" class="input">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-1">
+                <button type="button" onclick="document.getElementById('addModal').classList.add('hidden')" class="btn-ghost flex-1 justify-center">Cancel</button>
+                <button type="submit" class="btn-primary flex-1 justify-center">Create Class</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="hidden modal-overlay">
+    <div class="modal-box">
+        <h3 class="text-white font-semibold mb-2">Delete Class</h3>
+        <p class="text-slate-400 text-sm mb-5">Delete <span id="deleteName" class="text-white font-medium"></span>? All students and attendance in this class will be permanently deleted.</p>
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('deleteModal').classList.add('hidden')" class="btn-ghost flex-1 justify-center">Cancel</button>
+            <a id="deleteLink" href="#" class="btn-danger flex-1 text-center">Delete</a>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openDeleteModal(id, name) {
+        document.getElementById('deleteName').textContent = name;
+        document.getElementById('deleteLink').href = '/classes/delete/' + id;
+        document.getElementById('deleteModal').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

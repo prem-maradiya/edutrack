@@ -4,141 +4,133 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}EduTrack{% endblock %}</title>
-
-    <!-- Tailwind CSS via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Chart.js for dashboard charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Google Fonts: Space Mono for that techy feel -->
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <script>
-        // Tailwind dark theme config
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Space Grotesk', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
                         mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        brand: {
-                            50:  '#eef2ff',
-                            100: '#e0e7ff',
-                            400: '#818cf8',
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
-                        }
                     }
                 }
             }
         }
     </script>
-
     <style>
         body { background-color: #0f1117; color: #e2e8f0; }
-
-        /* Glassmorphism card effect */
-        .glass {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            backdrop-filter: blur(12px);
-        }
-
-        /* Subtle gradient glow on stat cards */
-        .glow-indigo { box-shadow: 0 0 24px rgba(99,102,241,0.15); }
-        .glow-green  { box-shadow: 0 0 24px rgba(34,197,94,0.12); }
-        .glow-red    { box-shadow: 0 0 24px rgba(239,68,68,0.12); }
-        .glow-blue   { box-shadow: 0 0 24px rgba(59,130,246,0.12); }
-
-        /* Flash message animation */
-        .flash-msg {
-            animation: slideDown 0.3s ease-out, fadeOut 0.5s ease-in 3.5s forwards;
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to   { opacity: 0; pointer-events: none; }
-        }
-
-        /* Table row hover */
-        .data-row:hover { background: rgba(99,102,241,0.06); }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar { width: 6px; }
+        .glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+        .nav-link { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.15s; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+        .nav-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .nav-link.active { color: #fff; background: #4f46e5; }
+        .btn-primary { background: #4f46e5; color: #fff; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-primary:hover { background: #4338ca; }
+        .btn-danger { background: rgba(239,68,68,0.15); color: #f87171; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; border: 1px solid rgba(239,68,68,0.2); cursor: pointer; transition: all 0.15s; text-decoration: none; }
+        .btn-danger:hover { background: rgba(239,68,68,0.25); }
+        .btn-ghost { background: rgba(255,255,255,0.05); color: #94a3b8; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 500; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .btn-ghost:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 9px 14px; font-size: 13px; color: #fff; outline: none; transition: all 0.15s; font-family: inherit; }
+        .input:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.15); }
+        .input::placeholder { color: #475569; }
+        select.input option { background: #1e2130; color: #e2e8f0; }
+        .label { display: block; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+        .badge-good { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); font-size: 11px; font-weight: 600; }
+        .badge-bad  { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); font-size: 11px; font-weight: 600; }
+        .badge-neutral { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; background: rgba(99,102,241,0.12); color: #818cf8; border: 1px solid rgba(99,102,241,0.2); font-size: 11px; font-weight: 600; }
+        .data-row:hover { background: rgba(99,102,241,0.04); }
+        .stat-card { border-radius: 16px; padding: 20px; }
+        .flash-msg { animation: slideIn 0.3s ease-out, fadeOut 0.4s ease-in 3.5s forwards; }
+        @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeOut  { from { opacity:1; } to { opacity:0; pointer-events:none; } }
+        ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #1a1d27; }
         ::-webkit-scrollbar-thumb { background: #4338ca; border-radius: 3px; }
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center; }
+        .modal-box { background:#1a1d27; border:1px solid rgba(255,255,255,0.1); border-radius:20px; padding:24px; width:100%; max-width:420px; margin:16px; }
+        .progress-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+        .progress-fill-green { height:100%; border-radius:99px; background:#22c55e; }
+        .progress-fill-red   { height:100%; border-radius:99px; background:#ef4444; }
     </style>
 </head>
-
 <body class="font-sans min-h-screen">
 
-    <!-- ── NAVBAR ── -->
-    <nav class="glass border-b border-white/10 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <!-- ── SIDEBAR ── -->
+    <div class="fixed top-0 left-0 h-full w-56 glass border-r border-white/5 z-40 flex flex-col">
 
-            <!-- Logo -->
+        <!-- Logo -->
+        <div class="p-5 border-b border-white/5">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                    </svg>
+                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">E</div>
+                <div>
+                    <div class="text-white font-semibold text-sm">EduTrack</div>
+                    <div class="text-slate-600 text-xs font-mono">v2.0</div>
                 </div>
-                <span class="text-lg font-semibold text-white">EduTrack</span>
-                <span class="text-xs font-mono text-brand-400 bg-brand-600/20 px-2 py-0.5 rounded-full">v2.0</span>
             </div>
-
-            <!-- Nav Links -->
-            <div class="flex items-center gap-2">
-                <a href="/"
-                   class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                          {% if request.path == '/' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">
-                    Dashboard
-                </a>
-                <a href="/attendance"
-                   class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                          {% if request.path == '/attendance' %}bg-brand-600 text-white{% else %}text-slate-400 hover:text-white hover:bg-white/5{% endif %}">
-                    Attendance
-                </a>
-            </div>
-
         </div>
-    </nav>
 
-    <!-- ── FLASH MESSAGES ── -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="fixed top-20 right-6 z-50 flex flex-col gap-2">
-                {% for category, message in messages %}
-                    <div class="flash-msg px-5 py-3 rounded-xl text-sm font-medium shadow-lg
-                        {% if category == 'error' %}bg-red-500/20 border border-red-500/30 text-red-300
-                        {% else %}bg-green-500/20 border border-green-500/30 text-green-300{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+        <!-- Nav Links -->
+        <nav class="flex-1 p-3 flex flex-col gap-1">
+            <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                Dashboard
+            </a>
+            <a href="/students" class="nav-link {% if '/students' in request.path %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Students
+            </a>
+            <a href="/classes" class="nav-link {% if '/classes' in request.path %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Classes
+            </a>
+            <a href="/attendance" class="nav-link {% if request.path == '/attendance' %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Attendance
+            </a>
+            <a href="/history" class="nav-link {% if '/history' in request.path %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                History
+            </a>
+            <a href="/defaulters" class="nav-link {% if '/defaulters' in request.path %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                Defaulters
+            </a>
+            <a href="/reports" class="nav-link {% if '/reports' in request.path %}active{% endif %}">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                Reports
+            </a>
+        </nav>
 
-    <!-- ── PAGE CONTENT ── -->
-    <main class="max-w-7xl mx-auto px-6 py-8">
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- ── FOOTER ── -->
-    <footer class="border-t border-white/5 mt-16">
-        <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-            <span class="text-xs text-slate-600 font-mono">EduTrack — Student Management System</span>
-            <span class="text-xs text-slate-600">Container-Based Application Development</span>
+        <!-- Footer -->
+        <div class="p-4 border-t border-white/5">
+            <p class="text-xs text-slate-600 font-mono">Container-Based App Dev</p>
         </div>
-    </footer>
+    </div>
+
+    <!-- ── MAIN CONTENT ── -->
+    <div class="ml-56 min-h-screen">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="fixed top-4 right-4 z-50 flex flex-col gap-2">
+                    {% for category, message in messages %}
+                        <div class="flash-msg px-4 py-3 rounded-xl text-sm font-medium shadow-lg
+                            {% if category == 'error' %}bg-red-500/20 border border-red-500/30 text-red-300
+                            {% else %}bg-green-500/20 border border-green-500/30 text-green-300{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Content -->
+        <main class="p-8">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 
     {% block scripts %}{% endblock %}
 </body>

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — EduTrack{% endblock %}
+{% block content %}
+
+<div class="mb-6">
+    <h1 class="text-xl font-bold text-white">Dashboard</h1>
+    <p class="text-slate-500 text-sm mt-0.5">{{ today }} — Overview of your institution</p>
+</div>
+
+<!-- Stat Cards -->
+<div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="stat-card glass">
+        <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Total Students</div>
+        <div class="text-3xl font-bold text-white">{{ total_students }}</div>
+        <div class="text-xs text-slate-600 mt-1">Enrolled across all classes</div>
+    </div>
+    <div class="stat-card glass">
+        <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Total Classes</div>
+        <div class="text-3xl font-bold text-white">{{ total_classes }}</div>
+        <div class="text-xs text-slate-600 mt-1">Active classes this year</div>
+    </div>
+    <div class="stat-card glass">
+        <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Today's Attendance</div>
+        <div class="text-3xl font-bold text-white">{{ today_pct }}<span class="text-lg text-slate-400">%</span></div>
+        <div class="text-xs text-slate-600 mt-1">{{ today_present }} / {{ today_total }} present</div>
+    </div>
+    <div class="stat-card glass">
+        <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Defaulters</div>
+        <div class="text-3xl font-bold {% if defaulters_count > 0 %}text-red-400{% else %}text-green-400{% endif %}">{{ defaulters_count }}</div>
+        <div class="text-xs text-slate-600 mt-1">Below 75% attendance</div>
+    </div>
+</div>
+
+<!-- Chart + Defaulters -->
+<div class="grid grid-cols-3 gap-6">
+
+    <!-- Trend Chart -->
+    <div class="col-span-2 glass rounded-2xl p-6">
+        <div class="text-sm font-semibold text-white mb-1">Attendance Trend</div>
+        <div class="text-xs text-slate-500 mb-5">Last 7 days class-wise attendance %</div>
+        <div class="h-52 relative">
+            <canvas id="trendChart"></canvas>
+            {% if not trend_labels %}
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <p class="text-slate-600 text-sm">No attendance data yet</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Quick Defaulters -->
+    <div class="glass rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="text-sm font-semibold text-white">At-Risk Students</div>
+            <a href="/defaulters" class="text-xs text-indigo-400 hover:underline">View all</a>
+        </div>
+        {% if defaulter_list %}
+            <div class="flex flex-col gap-3">
+                {% for s in defaulter_list %}
+                <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                    <div>
+                        <div class="text-sm text-white font-medium">{{ s.name }}</div>
+                        <div class="text-xs text-slate-500 font-mono">{{ s.enrollment_id }} · {{ s.class_name }}</div>
+                    </div>
+                    <span class="badge-bad">{{ s.percentage }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="flex flex-col items-center justify-center h-32 text-center">
+                <div class="text-2xl mb-2">🎉</div>
+                <div class="text-sm text-slate-500">No defaulters!</div>
+                <div class="text-xs text-slate-600">All students above 75%</div>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const labels = {{ trend_labels | tojson }};
+    const data   = {{ trend_data | tojson }};
+
+    if (labels.length > 0) {
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Attendance %',
+                    data,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99,102,241,0.08)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#64748b', font: { size: 11 } } },
+                    y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.04)' },
+                         ticks: { color: '#64748b', font: { size: 11 }, callback: v => v + '%' } }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}
