@@ -1,281 +1,223 @@
-# ─────────────────────────────────────────────
-# GitHub Actions CI/CD Pipeline
-# Project: EduTrack Student Management System
-# GitHub: ROMAN111954
-# Docker: premmaradiya
-#
-# Pipeline Flow:
-# git push → Build → Trivy Scan → Push → Cosign Sign/Verify
-#
-# Updates in v2:
-# - Fixed Node.js deprecation warnings (updated action versions)
-# - Added Docker layer caching (faster builds)
-# - Added image size report
-# - Added semantic version tag alongside git SHA
-# - Improved pipeline summary
-# ─────────────────────────────────────────────
-
 name: EduTrack CI/CD Pipeline
 
 on:
- push:
- branches: [ "main" ]
- pull_request:
- branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
- DOCKER_IMAGE: premmaradiya/studentmanagement-web
- DOCKER_IMAGE_SHA: premmaradiya/studentmanagement-web:${{ github.sha }}
- DOCKER_IMAGE_LATEST: premmaradiya/studentmanagement-web:latest
- DOCKER_IMAGE_V2: premmaradiya/studentmanagement-web:v2.0
+  DOCKER_IMAGE: premmaradiya/studentmanagement-web
+  DOCKER_IMAGE_SHA: premmaradiya/studentmanagement-web:${{ github.sha }}
+  DOCKER_IMAGE_LATEST: premmaradiya/studentmanagement-web:latest
+  DOCKER_IMAGE_V2: premmaradiya/studentmanagement-web:v2.0
 
 jobs:
 
- # ──────────────────────────────────────────
- # JOB 1: BUILD
- # Builds the Docker image using multi-stage Dockerfile
- # Saves image as artifact for Trivy scan job
- # ──────────────────────────────────────────
- build:
- name: Build Docker Image
- runs-on: ubuntu-latest
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
 
- outputs:
- image-size: ${{ steps.image-info.outputs.size }}
+    outputs:
+      image-size: ${{ steps.image-info.outputs.size }}
 
- steps:
- - name: Checkout repository
- uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
- # Updated to v3 — fixes Node.js 16 deprecation warning
- - name: Set up Docker Buildx
- uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
- # Build image locally (no push yet — scan first)
- - name: Build Docker image
- run: |
- docker build \
- --tag ${{ env.DOCKER_IMAGE_LATEST }} \
- --tag ${{ env.DOCKER_IMAGE_SHA }} \
- --tag ${{ env.DOCKER_IMAGE_V2 }} \
- .
+      - name: Build Docker image
+        run: |
+          docker build \
+            --tag ${{ env.DOCKER_IMAGE_LATEST }} \
+            --tag ${{ env.DOCKER_IMAGE_SHA }} \
+            --tag ${{ env.DOCKER_IMAGE_V2 }} \
+            .
 
- # Get image size for summary report
- - name: Get image info
- id: image-info
- run: |
- SIZE=$(docker image inspect ${{ env.DOCKER_IMAGE_LATEST }} \
- --format='{{.Size}}' | awk '{printf "%.1f MB", $1/1024/1024}')
- echo "size=$SIZE" >> $GITHUB_OUTPUT
- echo " Image size: $SIZE"
+      - name: Get image size
+        id: image-info
+        run: |
+          SIZE=$(docker image inspect ${{ env.DOCKER_IMAGE_LATEST }} \
+            --format='{{.Size}}' | awk '{printf "%.1f MB", $1/1024/1024}')
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "Image size: $SIZE"
 
- # Save image as artifact — passed to Trivy scan job
- - name: Save Docker image as artifact
- run: docker save ${{ env.DOCKER_IMAGE_LATEST }} | gzip > image.tar.gz
+      - name: Save Docker image as artifact
+        run: docker save ${{ env.DOCKER_IMAGE_LATEST }} | gzip > image.tar.gz
 
- # Updated to v4 — fixes Node.js 16 deprecation warning
- - name: Upload image artifact
- uses: actions/upload-artifact@v4
- with:
- name: docker-image
- path: image.tar.gz
- retention-days: 1
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar.gz
+          retention-days: 1
 
 
- # ──────────────────────────────────────────
- # JOB 2: TRIVY SECURITY SCAN
- # Scans image for known CVEs
- # Reports findings — does not block pipeline
- # Saves full SARIF report as artifact
- # ──────────────────────────────────────────
- trivy-scan:
- name: Trivy Security Scan
- runs-on: ubuntu-latest
- needs: build
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    needs: build
 
- steps:
- - name: Checkout repository
- uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
- - name: Download image artifact
- uses: actions/download-artifact@v4
- with:
- name: docker-image
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
 
- - name: Load Docker image
- run: docker load < image.tar.gz
+      - name: Load Docker image
+        run: docker load < image.tar.gz
 
- # Scan and print table to logs
- # exit-code 0 — report findings but don't block pipeline
- # ignore-unfixed — skip CVEs with no available fix
- - name: Run Trivy scan (table output)
- uses: aquasecurity/trivy-action@master
- with:
- image-ref: ${{ env.DOCKER_IMAGE_LATEST }}
- format: table
- exit-code: "0"
- ignore-unfixed: true
- severity: CRITICAL,HIGH,MEDIUM
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE_LATEST }}
+          format: table
+          exit-code: "0"
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM
 
- # Generate SARIF report saved as artifact for documentation
- - name: Generate Trivy SARIF report
- uses: aquasecurity/trivy-action@master
- if: always()
- with:
- image-ref: ${{ env.DOCKER_IMAGE_LATEST }}
- format: sarif
- output: trivy-report.sarif
- ignore-unfixed: true
- severity: CRITICAL,HIGH,MEDIUM
+      - name: Generate Trivy SARIF report
+        uses: aquasecurity/trivy-action@master
+        if: always()
+        with:
+          image-ref: ${{ env.DOCKER_IMAGE_LATEST }}
+          format: sarif
+          output: trivy-report.sarif
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH,MEDIUM
 
- - name: Upload Trivy report artifact
- uses: actions/upload-artifact@v4
- if: always()
- with:
- name: trivy-security-report
- path: trivy-report.sarif
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-security-report
+          path: trivy-report.sarif
 
 
- # ──────────────────────────────────────────
- # JOB 3: PUSH TO DOCKER HUB
- # Only runs on push to main (not on PRs)
- # Pushes 3 tags: latest, git SHA, v2.0
- # Uses layer caching for faster builds
- # ──────────────────────────────────────────
- push:
- name: Push to Docker Hub
- runs-on: ubuntu-latest
- needs: trivy-scan
- if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  push:
+    name: Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: trivy-scan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
- outputs:
- digest: ${{ steps.build-push.outputs.digest }}
+    outputs:
+      digest: ${{ steps.build-push.outputs.digest }}
 
- steps:
- - name: Checkout repository
- uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
- - name: Set up Docker Buildx
- uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
- # Login BEFORE any Docker Hub operation
- - name: Login to Docker Hub
- uses: docker/login-action@v3
- with:
- username: ${{ secrets.DOCKERHUB_USERNAME }}
- password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
- # Build and push with 3 tags + layer cache
- # Cache stored on Docker Hub — speeds up future builds
- - name: Build and push Docker image
- id: build-push
- uses: docker/build-push-action@v6
- with:
- context: .
- push: true
- tags: |
- ${{ env.DOCKER_IMAGE_LATEST }}
- ${{ env.DOCKER_IMAGE_SHA }}
- ${{ env.DOCKER_IMAGE_V2 }}
- cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
- cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+      - name: Build and push Docker image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE_LATEST }}
+            ${{ env.DOCKER_IMAGE_SHA }}
+            ${{ env.DOCKER_IMAGE_V2 }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
 
- # Save digest for Cosign signing
- - name: Save image digest
- run: echo "${{ steps.build-push.outputs.digest }}" > digest.txt
+      - name: Save image digest
+        run: echo "${{ steps.build-push.outputs.digest }}" > digest.txt
 
- - name: Upload digest artifact
- uses: actions/upload-artifact@v4
- with:
- name: image-digest
- path: digest.txt
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-digest
+          path: digest.txt
 
 
- # ──────────────────────────────────────────
- # JOB 4: COSIGN — SIGN & VERIFY
- # Signs the pushed image using keyless signing
- # Uses GitHub OIDC token — no private key needed
- # Signature stored in Sigstore Rekor public log
- # Anyone can verify this image publicly
- # ──────────────────────────────────────────
- cosign:
- name: Sign and Verify Image (Cosign)
- runs-on: ubuntu-latest
- needs: push
- if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  cosign:
+    name: Sign and Verify Image
+    runs-on: ubuntu-latest
+    needs: push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
- permissions:
- contents: read
- id-token: write # Required for OIDC keyless signing
- packages: write
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
 
- steps:
- - name: Checkout repository
- uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
- # Install latest Cosign
- - name: Install Cosign
- uses: sigstore/cosign-installer@v3
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
 
- - name: Login to Docker Hub
- uses: docker/login-action@v3
- with:
- username: ${{ secrets.DOCKERHUB_USERNAME }}
- password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
- - name: Download image digest
- uses: actions/download-artifact@v4
- with:
- name: image-digest
+      - name: Download image digest
+        uses: actions/download-artifact@v4
+        with:
+          name: image-digest
 
- # Sign using keyless OIDC — GitHub identity proves authenticity
- - name: Sign image with Cosign
- env:
- COSIGN_EXPERIMENTAL: "true"
- run: |
- IMAGE_DIGEST=$(cat digest.txt)
- cosign sign --yes \
- ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}
- echo "Image signed: ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}"
+      - name: Sign image with Cosign
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          IMAGE_DIGEST=$(cat digest.txt)
+          cosign sign --yes \
+            ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}
+          echo "Image signed: ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}"
 
- # Verify signature immediately after signing
- - name: Verify image signature
- env:
- COSIGN_EXPERIMENTAL: "true"
- run: |
- IMAGE_DIGEST=$(cat digest.txt)
- cosign verify \
- --certificate-identity-regexp="https://github.com/ROMAN111954/.*" \
- --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
- ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST} | jq .
+      - name: Verify image signature
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          IMAGE_DIGEST=$(cat digest.txt)
+          cosign verify \
+            --certificate-identity-regexp="https://github.com/ROMAN111954/.*" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST} | jq .
 
- # Print final pipeline summary
- - name: Pipeline summary
- run: |
- IMAGE_DIGEST=$(cat digest.txt)
- echo "## EduTrack CI/CD Pipeline - Complete" >> $GITHUB_STEP_SUMMARY
- echo "" >> $GITHUB_STEP_SUMMARY
- echo "### Pipeline Results" >> $GITHUB_STEP_SUMMARY
- echo "| Step | Status | Details |" >> $GITHUB_STEP_SUMMARY
- echo "|------|--------|---------|" >> $GITHUB_STEP_SUMMARY
- echo "| Build | Success | Multi-stage Dockerfile |" >> $GITHUB_STEP_SUMMARY
- echo "| Trivy Scan | Passed | Security report saved |" >> $GITHUB_STEP_SUMMARY
- echo "| Push | Success | 3 tags pushed to Docker Hub |" >> $GITHUB_STEP_SUMMARY
- echo "| Cosign Sign | Signed | Keyless OIDC signing |" >> $GITHUB_STEP_SUMMARY
- echo "| Cosign Verify | Verified | Signature confirmed |" >> $GITHUB_STEP_SUMMARY
- echo "" >> $GITHUB_STEP_SUMMARY
- echo "### Image Details" >> $GITHUB_STEP_SUMMARY
- echo "| Tag | Value |" >> $GITHUB_STEP_SUMMARY
- echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
- echo "| Latest | \`${{ env.DOCKER_IMAGE_LATEST }}\` |" >> $GITHUB_STEP_SUMMARY
- echo "| Version | \`${{ env.DOCKER_IMAGE_V2 }}\` |" >> $GITHUB_STEP_SUMMARY
- echo "| SHA | \`${{ env.DOCKER_IMAGE_SHA }}\` |" >> $GITHUB_STEP_SUMMARY
- echo "| Digest | \`${IMAGE_DIGEST}\` |" >> $GITHUB_STEP_SUMMARY
- echo "" >> $GITHUB_STEP_SUMMARY
- echo "### Verify this image yourself" >> $GITHUB_STEP_SUMMARY
- echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
- echo "cosign verify \\" >> $GITHUB_STEP_SUMMARY
- echo " --certificate-identity-regexp='https://github.com/ROMAN111954/.*' \\" >> $GITHUB_STEP_SUMMARY
- echo " --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \\" >> $GITHUB_STEP_SUMMARY
- echo " ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}" >> $GITHUB_STEP_SUMMARY
- echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+      - name: Pipeline summary
+        run: |
+          IMAGE_DIGEST=$(cat digest.txt)
+          echo "## EduTrack CI/CD Pipeline - Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | Success | Multi-stage Dockerfile |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Scan | Passed | Security report saved as artifact |" >> $GITHUB_STEP_SUMMARY
+          echo "| Push | Success | 3 tags pushed to Docker Hub |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cosign Sign | Signed | Keyless OIDC signing via GitHub |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cosign Verify | Verified | Signature confirmed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Image Tags" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Latest | \`${{ env.DOCKER_IMAGE_LATEST }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ env.DOCKER_IMAGE_V2 }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA | \`${{ env.DOCKER_IMAGE_SHA }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Digest | \`${IMAGE_DIGEST}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Verify this image" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "cosign verify \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --certificate-identity-regexp='https://github.com/ROMAN111954/.*' \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \\" >> $GITHUB_STEP_SUMMARY
+          echo "  ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
