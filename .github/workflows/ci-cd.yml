@@ -188,7 +188,7 @@ jobs:
         run: |
           IMAGE_DIGEST=$(cat digest.txt)
           cosign verify \
-            --certificate-identity-regexp="https://github.com/ROMAN111954/.*" \
+            --certificate-identity-regexp="https://github.com/prem-maradiya/.*" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
             ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST} | jq .
 
@@ -217,7 +217,7 @@ jobs:
           echo "### Verify this image" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
           echo "cosign verify \\" >> $GITHUB_STEP_SUMMARY
-          echo "  --certificate-identity-regexp='https://github.com/ROMAN111954/.*' \\" >> $GITHUB_STEP_SUMMARY
+          echo "  --certificate-identity-regexp='https://github.com/prem-maradiya/.*' \\" >> $GITHUB_STEP_SUMMARY
           echo "  --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \\" >> $GITHUB_STEP_SUMMARY
           echo "  ${{ env.DOCKER_IMAGE }}@${IMAGE_DIGEST}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
